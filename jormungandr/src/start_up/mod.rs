@@ -14,13 +14,15 @@ use tokio_compat::runtime;
 pub type NodeStorage = BlockStore;
 pub type NodeStorageConnection = BlockStoreConnection<Block>;
 
+const BLOCKSTORE_BUSY_TIMEOUT: u64 = 1000;
+
 /// prepare the block storage from the given settings
 ///
 pub fn prepare_storage(setting: &Settings, logger: &Logger) -> Result<Storage, Error> {
     let raw_block_store = match &setting.storage {
         None => {
             info!(logger, "storing blockchain in memory");
-            BlockStore::memory()
+            BlockStore::memory(BLOCKSTORE_BUSY_TIMEOUT)
         }
         Some(dir) => {
             std::fs::create_dir_all(dir).map_err(|err| Error::IO {
@@ -30,7 +32,7 @@ pub fn prepare_storage(setting: &Settings, logger: &Logger) -> Result<Storage, E
             let mut sqlite = dir.clone();
             sqlite.push("blocks.sqlite");
             info!(logger, "storing blockchain in '{:?}'", sqlite);
-            BlockStore::file(sqlite)
+            BlockStore::file(sqlite, BLOCKSTORE_BUSY_TIMEOUT)
         }
     };
 
